@@ -12,14 +12,12 @@ class locator:
         find_start: a character you want to start extracting from
         find_end: a character you want to end extracting until
         '''
-        path = 'D:/myprojects/macroeconomics_analyses/'
+        path = 'D:/myProjects/macroeconomics_analyses/'
         self.pdf_object = open(path+filename, 'rb')
         self.pdf_read = PyPDF2.PdfFileReader(self.pdf_object)
         self.ISEXPORT = True
-        if find_word != '월별 수출실적':
-            self.ISEXPORT = False
-               
-        print(self.ISEXPORT)
+        if find_word.find('수출') is -1:
+            self.ISEXPORT = False        
         
         for page in range(self.pdf_read.numPages):
             page_object = self.pdf_read.getPage(page)
@@ -30,29 +28,39 @@ class locator:
         
         print(self.df)
     
+    def _start_end(self, text, find_start, find_end):
+        if self.ISEXPORT is True:
+            start = text.find(find_start)
+            end = text.find(find_end)
+            return [start, end]
+        elif self.ISEXPORT is False:
+            start = text.find(find_start, text.find(find_start)+1)
+            end = len(text)
+            return [start, end]
+
+    
     def page_processor(self, page, find_start, find_end):
         text = self.pdf_read.getPage(page).extractText()
-        start = text.find(find_start)
-        end = text.find(find_end)
+        start, end = self._start_end(text, find_start, find_end)        
         
-        if self.ISEXPORT is True:
+        if self.ISEXPORT is True:            
             excerpt = text[start+2:end-2].replace('\n', ' ').strip().split(' ')                  
-        else:
-            excerpt = text[start:end-2].replace('\n', '').strip().split(' ')
+        else:            
+            excerpt = text[start+2:end-2].replace('\n', ' ').strip().split(' ')  
 
         brokendown = []
         added = []
         for element in excerpt:
             asc = ord(element[0]) 
-            if 12593 <= asc and asc <= 52044:
-                if self.ISEXPORT is True:                
-                    brokendown.append(added)
-                    added = [element]
-                else:
-                    
+            if 12593 <= asc and asc <= 52044:  
+                brokendown.append(added)
+                added = [element]   
             else:
                 added.append(element) 
         
+        if brokendown[0] == []:
+            brokendown = brokendown[1:]
+
         extracted = pd.DataFrame([])
         for num, element in enumerate(brokendown):
             if num is 0 and self.ISEXPORT is True:
